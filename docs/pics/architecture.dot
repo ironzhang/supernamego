@@ -1,0 +1,19 @@
+digraph g{
+	ranksep=0.6
+
+	node[shape=box3d, width=2.0 height=0.6 fontname="Arial"]
+
+	k8s_api[label="k8s-api-server"]
+	sns_agent[label="sns-agent"]
+	sns_files[shape=note label="sns domain files"]
+
+	app_c[shape=record label="{supernamec|app}"]
+	app_go[shape=record label="{supernamego|app}"]
+	app_java[shape=record label="{supernamejava|app}"]
+
+	{rank=same; app_c; app_go; app_java}
+
+	k8s_api->sns_agent[label="watch" dir="back"]
+	sns_agent->sns_files
+	sns_files->{app_c, app_go, app_java}
+}
