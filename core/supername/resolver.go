@@ -12,23 +12,15 @@ import (
 	"github.com/ironzhang/superlib/fileutil"
 	"github.com/ironzhang/superlib/filewatch"
 	"github.com/ironzhang/superlib/superutil/parameter"
-	model "github.com/ironzhang/superlib/superutil/supermodel"
+	"github.com/ironzhang/superlib/superutil/supermodel"
 
+	"github.com/ironzhang/supernamego/core/supername/routepolicy"
 	"github.com/ironzhang/supernamego/pkg/agentclient"
-
-	"github.com/ironzhang/supernamego/supername/lb"
-	"github.com/ironzhang/supernamego/supername/routepolicy"
 )
-
-// LoadBalancer 负载均衡器接口
-type LoadBalancer interface {
-	Pickup(domain, cluster string, endpoints []model.Endpoint) (model.Endpoint, error)
-}
 
 // Resolver 服务发现解析程序
 type Resolver struct {
-	Tags             map[string]string // 路由标签
-	LoadBalancer     LoadBalancer      // 负载均衡器
+	RouteParams      map[string]string // 路由参数
 	SkipPreloadError bool              // 忽略预加载错误
 
 	once     sync.Once
@@ -41,28 +33,7 @@ func (r *Resolver) init() {
 	}
 
 	tlog.Named("supername").Debugw("init supername resolver", "resolver", r, "param", parameter.Param)
-	if r.LoadBalancer == nil {
-		r.LoadBalancer = &lb.WRLoadBalancer{}
-	}
-	r.resolver = newResolver(r.Tags, parameter.Param)
-}
-
-func (r *Resolver) clone() *Resolver {
-	r.once.Do(r.init)
-
-	return &Resolver{
-		Tags:             r.Tags,
-		LoadBalancer:     r.LoadBalancer,
-		SkipPreloadError: r.SkipPreloadError,
-		resolver:         r.resolver,
-	}
-}
-
-// WithLoadBalancer 构建一个新的服务发现解析程序，并重置负载均衡器
-func (r *Resolver) WithLoadBalancer(lb LoadBalancer) *Resolver {
-	c := r.clone()
-	c.LoadBalancer = lb
-	return c
+	r.resolver = newResolver(r.RouteParams, parameter.Param)
 }
 
 // Preload 预加载
@@ -87,21 +58,17 @@ func (r *Resolver) Preload(ctx context.Context, domains []string) error {
 	return nil
 }
 
-// Lookup 查找地址节点
-func (r *Resolver) Lookup(ctx context.Context, domain string, tags map[string]string) (addr, cluster string, err error) {
+// Resolve 解析域名
+func (r *Resolver) Resolve(ctx context.Context, domain string, params map[string]string) (supermodel.Cluster, error) {
 	r.once.Do(r.init)
 
-	c, err := r.resolver.LookupCluster(ctx, domain, tags)
+	// 通过域名查找集群节点
+	c, err := r.resolver.LookupCluster(ctx, domain, params)
 	if err != nil {
-		tlog.Named("supername").WithContext(ctx).Errorw("lookup cluster", "domain", domain, "tags", tags, "error", err)
-		return "", "", err
+		tlog.Named("supername").WithContext(ctx).Errorw("lookup cluster", "domain", domain, "params", params, "error", err)
+		return supermodel.Cluster{}, err
 	}
-	ep, err := r.LoadBalancer.Pickup(domain, c.Name, c.Endpoints)
-	if err != nil {
-		tlog.Named("supername").WithContext(ctx).Errorw("load balancer pickup", "domain", domain, "cluster", c.Name, "error", err)
-		return "", "", err
-	}
-	return ep.Addr, c.Name, nil
+	return c, nil
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -110,7 +77,7 @@ func (r *Resolver) Lookup(ctx context.Context, domain string, tags map[string]st
 
 // resolver 服务发现解析程序核心实现
 type resolver struct {
-	tags      map[string]string    // 路由标签
+	routes    map[string]string    // 路由参数
 	param     parameter.Parameter  // 解析程序配置参数
 	agent     *agentclient.Client  // agent 客户端
 	watcher   *filewatch.Watcher   // 文件订阅程序
@@ -120,10 +87,10 @@ type resolver struct {
 }
 
 // newResolver 构造服务发现解析程序核心实现
-func newResolver(tags map[string]string, param parameter.Parameter) *resolver {
+func newResolver(routes map[string]string, param parameter.Parameter) *resolver {
 	r := &resolver{
-		tags:  tags,
-		param: param,
+		routes: routes,
+		param:  param,
 		agent: agentclient.New(agentclient.Options{
 			Addr:    param.Agent.Server,
 			Timeout: time.Duration(param.Agent.Timeout) * time.Second,
@@ -147,26 +114,26 @@ func (r *resolver) Preload(ctx context.Context, domains []string) error {
 }
 
 // LookupCluster 查找集群节点
-func (r *resolver) LookupCluster(ctx context.Context, domain string, tags map[string]string) (model.Cluster, error) {
+func (r *resolver) LookupCluster(ctx context.Context, domain string, params map[string]string) (supermodel.Cluster, error) {
 	// 订阅服务提供方
 	p, err := r.watchProvider(ctx, domain)
 	if err != nil {
 		tlog.Named("supername").WithContext(ctx).Errorw("watch provider", "domain", domain, "error", err)
-		return model.Cluster{}, err
+		return supermodel.Cluster{}, err
 	}
 
 	// 获取服务模型
 	service, ok := p.LoadServiceModel()
 	if !ok {
 		tlog.Named("supername").WithContext(ctx).Errorw("can not load service model", "domain", domain)
-		return model.Cluster{}, r.serviceNotLoad(domain)
+		return supermodel.Cluster{}, r.serviceNotLoad(domain)
 	}
 
 	// 获取路由模型
 	route, ok := p.LoadRouteModel()
 	if !ok {
 		tlog.Named("supername").WithContext(ctx).Errorw("can not load route model", "domain", domain)
-		return model.Cluster{}, r.routeNotLoad(domain)
+		return supermodel.Cluster{}, r.routeNotLoad(domain)
 	}
 
 	// 查找集群
@@ -174,11 +141,11 @@ func (r *resolver) LookupCluster(ctx context.Context, domain string, tags map[st
 		service: service,
 		route:   route,
 		policy:  r.policy,
-		tags:    r.tags,
-	}).Lookup(ctx, domain, tags)
+		routes:  r.routes,
+	}).Lookup(ctx, domain, params)
 	if err != nil {
-		tlog.Named("supername").WithContext(ctx).Errorw("lookup", "domain", domain, "tags", tags, "error", err)
-		return model.Cluster{}, err
+		tlog.Named("supername").WithContext(ctx).Errorw("lookup", "domain", domain, "tags", params, "error", err)
+		return supermodel.Cluster{}, err
 	}
 	return c, nil
 }
@@ -197,7 +164,7 @@ func (r *resolver) keepAlive() {
 	domains := r.listProviders()
 
 	// 向 agent 发送订阅域名请求，以保持订阅的心跳
-	err := r.agent.SubscribeDomains(context.Background(), domains, time.Duration(r.param.Agent.KeepAliveTTL)*time.Second, true)
+	err := r.agent.WatchDomains(context.Background(), domains, time.Duration(r.param.Agent.KeepAliveTTL)*time.Second, true)
 	if err != nil {
 		tlog.Warnw("keep alive fail", "error", err)
 		return
@@ -215,10 +182,10 @@ func (r *resolver) listProviders() []string {
 
 func (r *resolver) watchProviders(ctx context.Context, domains []string) error {
 	// 向 agent 发送订阅域名请求
-	err := r.agent.SubscribeDomains(ctx, domains,
+	err := r.agent.WatchDomains(ctx, domains,
 		time.Duration(r.param.Agent.KeepAliveTTL)*time.Second, false)
 	if err != nil {
-		tlog.WithContext(ctx).Warnw("subscribe domains", "domains", domains, "error", err)
+		tlog.WithContext(ctx).Warnw("watch domains", "domains", domains, "error", err)
 		if !r.param.Agent.SkipError {
 			return err
 		}
@@ -245,10 +212,10 @@ func (r *resolver) watchProvider(ctx context.Context, domain string) (*provider,
 	}
 
 	// 向 agent 发送订阅域名请求
-	err := r.agent.SubscribeDomains(ctx, []string{domain},
+	err := r.agent.WatchDomains(ctx, []string{domain},
 		time.Duration(r.param.Agent.KeepAliveTTL)*time.Second, false)
 	if err != nil {
-		tlog.WithContext(ctx).Warnw("subscribe domains", "domain", domain, "error", err)
+		tlog.WithContext(ctx).Warnw("watch domains", "domain", domain, "error", err)
 		if !r.param.Agent.SkipError {
 			return nil, err
 		}
@@ -270,7 +237,7 @@ func (r *resolver) loadProvider(ctx context.Context, domain string) *provider {
 
 	// 订阅服务文件
 	r.watcher.WatchFile(ctx, r.serviceFilePath(domain), func(path string) bool {
-		var m model.ServiceModel
+		var m supermodel.ServiceModel
 		err := fileutil.ReadJSON(path, &m)
 		if err != nil {
 			return false
@@ -281,7 +248,7 @@ func (r *resolver) loadProvider(ctx context.Context, domain string) *provider {
 
 	// 订阅路由文件
 	r.watcher.WatchFile(ctx, r.routeFilePath(domain), func(path string) bool {
-		var m model.RouteModel
+		var m supermodel.RouteModel
 		err := fileutil.ReadJSON(path, &m)
 		if err != nil {
 			return false

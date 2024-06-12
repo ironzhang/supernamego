@@ -6,7 +6,7 @@ import (
 
 	lua "github.com/yuin/gopher-lua"
 
-	model "github.com/ironzhang/superlib/superutil/supermodel"
+	"github.com/ironzhang/superlib/superutil/supermodel"
 )
 
 // Policy 路由策略
@@ -29,7 +29,7 @@ func (p *Policy) Load(path string) error {
 }
 
 // MatchRoute 执行路由匹配
-func (p *Policy) MatchRoute(domain string, tags map[string]string, clusters map[string]model.Cluster) ([]model.Destination, error) {
+func (p *Policy) MatchRoute(domain string, params map[string]string, clusters map[string]supermodel.Cluster) ([]supermodel.Destination, error) {
 	// 查找脚本函数
 	fn, err := p.lookupFunction("MatchFuncs", domain)
 	if err != nil {
@@ -41,7 +41,7 @@ func (p *Policy) MatchRoute(domain string, tags map[string]string, clusters map[
 		Fn:      fn,
 		NRet:    1,
 		Protect: true,
-	}, makeMapTable(p.lstate, tags), makeClusterMapTable(p.lstate, clusters))
+	}, makeMapTable(p.lstate, params), makeClusterMapTable(p.lstate, clusters))
 	if err != nil {
 		return nil, fmt.Errorf("luaroute: call by param: %w", err)
 	}

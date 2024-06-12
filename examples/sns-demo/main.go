@@ -8,15 +8,15 @@ import (
 )
 
 func main() {
-	err := supernamego.AutoSetup()
-	if err != nil {
-		fmt.Printf("supernamego auto setup: %v\n", err)
-		return
-	}
+	//	err := supernamego.AutoSetup()
+	//	if err != nil {
+	//		fmt.Printf("supernamego auto setup: %v\n", err)
+	//		return
+	//	}
 
-	addr, cluster, err := supernamego.Lookup(context.Background(), "sns.https.nginx", nil)
+	addr, cluster, err := supernamego.Lookup(context.Background(), "sns/https.nginx")
 	if err != nil {
-		fmt.Printf("supernamego lookup endpoint: %v\n", err)
+		fmt.Printf("supernamego lookup: %v\n", err)
 		return
 	}
 	fmt.Printf("cluster=%s, address=%v\n", cluster, addr)

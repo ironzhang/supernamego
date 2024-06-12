@@ -3,9 +3,9 @@ package routepolicy
 import (
 	"sync"
 
-	model "github.com/ironzhang/superlib/superutil/supermodel"
+	"github.com/ironzhang/superlib/superutil/supermodel"
 
-	"github.com/ironzhang/supernamego/supername/routepolicy/luaroute"
+	"github.com/ironzhang/supernamego/core/supername/routepolicy/luaroute"
 )
 
 // Policy 路由策略
@@ -29,8 +29,8 @@ func (p *Policy) Load(path string) error {
 }
 
 // MatchRoute 执行路由匹配
-func (p *Policy) MatchRoute(domain string, tags map[string]string, clusters map[string]model.Cluster) ([]model.Destination, error) {
+func (p *Policy) MatchRoute(domain string, params map[string]string, clusters map[string]supermodel.Cluster) ([]supermodel.Destination, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	return p.policy.MatchRoute(domain, tags, clusters)
+	return p.policy.MatchRoute(domain, params, clusters)
 }

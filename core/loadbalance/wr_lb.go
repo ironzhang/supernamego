@@ -1,9 +1,10 @@
-package lb
+package loadbalance
 
 import (
+	"context"
 	"math/rand"
 
-	model "github.com/ironzhang/superlib/superutil/supermodel"
+	"github.com/ironzhang/superlib/superutil/supermodel"
 )
 
 // WRLoadBalancer 权重随机均衡算法
@@ -11,9 +12,10 @@ type WRLoadBalancer struct {
 }
 
 // Pickup 按权重随机挑选地址节点
-func (p *WRLoadBalancer) Pickup(domain, cluster string, endpoints []model.Endpoint) (model.Endpoint, error) {
+func (p *WRLoadBalancer) Pickup(ctx context.Context, domain, cluster string,
+	endpoints []supermodel.Endpoint) (supermodel.Endpoint, error) {
 	if len(endpoints) <= 0 {
-		return model.Endpoint{}, ErrInvalidEndpoints
+		return supermodel.Endpoint{}, ErrInvalidEndpoints
 	}
 
 	// 按权重随机挑选节点
@@ -34,11 +36,11 @@ func (p *WRLoadBalancer) Pickup(domain, cluster string, endpoints []model.Endpoi
 	return endpoints[i], nil
 }
 
-func calcAvailableEndpoints(endpoints []model.Endpoint) (int, []model.Endpoint) {
+func calcAvailableEndpoints(endpoints []supermodel.Endpoint) (int, []supermodel.Endpoint) {
 	total := 0
-	results := make([]model.Endpoint, 0, len(endpoints))
+	results := make([]supermodel.Endpoint, 0, len(endpoints))
 	for _, ep := range endpoints {
-		if ep.State == model.Enabled {
+		if ep.State == supermodel.Enabled {
 			total += ep.Weight
 			results = append(results, ep)
 		}

@@ -1,12 +1,9 @@
-package supernamego
+package sns
 
 import (
 	"fmt"
 
 	"github.com/ironzhang/superlib/fileutil"
-
-	"github.com/ironzhang/supernamego/supername"
-	"github.com/ironzhang/supernamego/supername/lb"
 )
 
 // Misc 杂项信息
@@ -17,24 +14,21 @@ type Misc struct {
 
 // Options 初始化选项
 type Options struct {
-	// 路由标签，为 nil 则读取文件 superoptions/tags.json
-	Tags map[string]string
+	// 路由标签，为 nil 则读取文件 superoptions/route-params.json
+	RouteParams map[string]string
 
 	// 预加载域名列表，为 nil 则读取文件 superoptions/preload.json
 	PreloadDomains []string
 
 	// 杂项信息，为 nil 则读取文件 superoptions/misc.json
 	Misc *Misc
-
-	// 负载均衡器，为 nil 则使用 lb.WRLoadBalancer
-	LoadBalancer supername.LoadBalancer
 }
 
 func (p *Options) setupDefaults() (err error) {
-	if p.Tags == nil {
-		p.Tags, err = readTags()
+	if p.RouteParams == nil {
+		p.RouteParams, err = readRouteParams()
 		if err != nil {
-			return fmt.Errorf("read tags: %w", err)
+			return fmt.Errorf("read route params: %w", err)
 		}
 	}
 
@@ -52,23 +46,19 @@ func (p *Options) setupDefaults() (err error) {
 		}
 	}
 
-	if p.LoadBalancer == nil {
-		p.LoadBalancer = &lb.WRLoadBalancer{}
-	}
-
 	return nil
 }
 
-func readTags() (map[string]string, error) {
-	var tags map[string]string
-	const path = "superoptions/tags.json"
+func readRouteParams() (map[string]string, error) {
+	var params map[string]string
+	const path = "superoptions/route-params.json"
 	if fileutil.FileExist(path) {
-		err := fileutil.ReadJSON(path, &tags)
+		err := fileutil.ReadJSON(path, &params)
 		if err != nil {
 			return nil, err
 		}
 	}
-	return tags, nil
+	return params, nil
 }
 
 func readPreloadDomains() (domains []string, err error) {

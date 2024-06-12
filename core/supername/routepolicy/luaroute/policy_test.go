@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"testing"
 
-	model "github.com/ironzhang/superlib/superutil/supermodel"
+	"github.com/ironzhang/superlib/superutil/supermodel"
 )
 
 func matchError(t testing.TB, err error, errstr string) bool {
@@ -38,69 +38,69 @@ func TestPolicy(t *testing.T) {
 	}
 
 	// 测试集群列表
-	clusters := map[string]model.Cluster{
-		"default@mock": model.Cluster{
+	clusters := map[string]supermodel.Cluster{
+		"default@mock": supermodel.Cluster{
 			Name: "default@mock",
 			Features: map[string]string{
 				"Lidc":        "default_lidc",
 				"Region":      "default_region",
 				"Environment": "product",
 			},
-			Endpoints: make([]model.Endpoint, 10),
+			Endpoints: make([]supermodel.Endpoint, 10),
 		},
-		"hna-v": model.Cluster{
+		"hna-v": supermodel.Cluster{
 			Name: "hna-v",
 			Features: map[string]string{
 				"Lidc":        "hna",
 				"Region":      "hn",
 				"Environment": "product",
 			},
-			Endpoints: make([]model.Endpoint, 10),
+			Endpoints: make([]supermodel.Endpoint, 10),
 		},
-		"hnb-v": model.Cluster{
+		"hnb-v": supermodel.Cluster{
 			Name: "hnb-v",
 			Features: map[string]string{
 				"Lidc":        "hnb",
 				"Region":      "hn",
 				"Environment": "product",
 			},
-			Endpoints: make([]model.Endpoint, 10),
+			Endpoints: make([]supermodel.Endpoint, 10),
 		},
-		"hbf-v": model.Cluster{
+		"hbf-v": supermodel.Cluster{
 			Name: "hbf-v",
 			Features: map[string]string{
 				"Lidc":        "hbf",
 				"Region":      "hb",
 				"Environment": "product",
 			},
-			Endpoints: make([]model.Endpoint, 10),
+			Endpoints: make([]supermodel.Endpoint, 10),
 		},
-		"hna-sim000-v": model.Cluster{
+		"hna-sim000-v": supermodel.Cluster{
 			Name: "hna-sim000-v",
 			Features: map[string]string{
 				"Lidc":        "hna",
 				"Region":      "hn",
 				"Environment": "sim",
 			},
-			Endpoints: make([]model.Endpoint, 10),
+			Endpoints: make([]supermodel.Endpoint, 10),
 		},
-		"hna-sim001-v": model.Cluster{
+		"hna-sim001-v": supermodel.Cluster{
 			Name: "hna-sim001-v",
 			Features: map[string]string{
 				"Lidc":        "hna",
 				"Region":      "hn",
 				"Environment": "sim",
 			},
-			Endpoints: make([]model.Endpoint, 10),
+			Endpoints: make([]supermodel.Endpoint, 10),
 		},
-		"hna-sim002-v": model.Cluster{
+		"hna-sim002-v": supermodel.Cluster{
 			Name: "hna-sim002-v",
 			Features: map[string]string{
 				"Lidc":        "hna",
 				"Region":      "hn",
 				"Environment": "sim",
 			},
-			Endpoints: make([]model.Endpoint, 10),
+			Endpoints: make([]supermodel.Endpoint, 10),
 		},
 	}
 
@@ -108,8 +108,8 @@ func TestPolicy(t *testing.T) {
 	tests := []struct {
 		domain       string
 		tags         map[string]string
-		clusters     map[string]model.Cluster
-		destinations []model.Destination
+		clusters     map[string]supermodel.Cluster
+		destinations []supermodel.Destination
 		err          string
 	}{
 		{
@@ -122,7 +122,7 @@ func TestPolicy(t *testing.T) {
 				"Environment": "product",
 			},
 			clusters: clusters,
-			destinations: []model.Destination{
+			destinations: []supermodel.Destination{
 				{Cluster: "hna-v", Percent: 1},
 			},
 			err: "",
@@ -137,7 +137,7 @@ func TestPolicy(t *testing.T) {
 				"Environment": "product",
 			},
 			clusters: clusters,
-			destinations: []model.Destination{
+			destinations: []supermodel.Destination{
 				{Cluster: "hbf-v", Percent: 1},
 			},
 			err: "",
@@ -153,7 +153,7 @@ func TestPolicy(t *testing.T) {
 				"X-Lane-Cluster": "hna-sim100-v",
 			},
 			clusters: clusters,
-			destinations: []model.Destination{
+			destinations: []supermodel.Destination{
 				{Cluster: "hna-sim000-v", Percent: 1},
 			},
 			err: "",
@@ -169,7 +169,7 @@ func TestPolicy(t *testing.T) {
 				"X-Lane-Cluster": "hna-sim001-v",
 			},
 			clusters: clusters,
-			destinations: []model.Destination{
+			destinations: []supermodel.Destination{
 				{Cluster: "hna-sim001-v", Percent: 1},
 			},
 			err: "",
@@ -184,7 +184,7 @@ func TestPolicy(t *testing.T) {
 				"Environment": "product",
 			},
 			clusters: clusters,
-			destinations: []model.Destination{
+			destinations: []supermodel.Destination{
 				{Cluster: "hna-v", Percent: 0.5},
 				{Cluster: "hnb-v", Percent: 0.5},
 			},
@@ -201,7 +201,7 @@ func TestPolicy(t *testing.T) {
 				"X-Lane-Cluster": "hna-sim001-v",
 			},
 			clusters: clusters,
-			destinations: []model.Destination{
+			destinations: []supermodel.Destination{
 				{Cluster: "default@mock", Percent: 1},
 			},
 			err: "",

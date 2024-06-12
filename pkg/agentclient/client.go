@@ -32,8 +32,8 @@ func New(opts Options) *Client {
 	}
 }
 
-// SubscribeDomains subscribes the given domains.
-func (p *Client) SubscribeDomains(ctx context.Context, domains []string, ttl time.Duration, async bool) error {
+// WatchDomains subscribes the given domains.
+func (p *Client) WatchDomains(ctx context.Context, domains []string, ttl time.Duration, async bool) error {
 	req := _WatchDomainsReq{
 		Domains:      domains,
 		TTL:          timeutil.Duration(ttl),

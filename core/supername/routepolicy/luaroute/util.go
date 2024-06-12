@@ -5,7 +5,7 @@ import (
 
 	lua "github.com/yuin/gopher-lua"
 
-	model "github.com/ironzhang/superlib/superutil/supermodel"
+	"github.com/ironzhang/superlib/superutil/supermodel"
 )
 
 func makeMapTable(ls *lua.LState, m map[string]string) *lua.LTable {
@@ -16,7 +16,7 @@ func makeMapTable(ls *lua.LState, m map[string]string) *lua.LTable {
 	return lt
 }
 
-func makeClusterTable(ls *lua.LState, c model.Cluster) *lua.LTable {
+func makeClusterTable(ls *lua.LState, c supermodel.Cluster) *lua.LTable {
 	lt := ls.NewTable()
 	lt.RawSetString("Name", lua.LString(c.Name))
 	lt.RawSetString("Features", makeMapTable(ls, c.Features))
@@ -24,7 +24,7 @@ func makeClusterTable(ls *lua.LState, c model.Cluster) *lua.LTable {
 	return lt
 }
 
-func makeClusterMapTable(ls *lua.LState, clusters map[string]model.Cluster) *lua.LTable {
+func makeClusterMapTable(ls *lua.LState, clusters map[string]supermodel.Cluster) *lua.LTable {
 	lt := ls.NewTable()
 	for name, cluster := range clusters {
 		lt.RawSetString(name, makeClusterTable(ls, cluster))
@@ -32,8 +32,8 @@ func makeClusterMapTable(ls *lua.LState, clusters map[string]model.Cluster) *lua
 	return lt
 }
 
-func makeDestinations(lt *lua.LTable) ([]model.Destination, error) {
-	var dests []model.Destination
+func makeDestinations(lt *lua.LTable) ([]supermodel.Destination, error) {
+	var dests []supermodel.Destination
 	for i := 1; i <= lt.Len(); i++ {
 		value := lt.RawGetInt(i)
 		table, ok := value.(*lua.LTable)
@@ -44,7 +44,7 @@ func makeDestinations(lt *lua.LTable) ([]model.Destination, error) {
 			return nil, fmt.Errorf("invalid return value, the %dth table's len is not 2", i)
 		}
 
-		dest := model.Destination{
+		dest := supermodel.Destination{
 			Cluster: lua.LVAsString(table.RawGetInt(1)),
 			Percent: float64(lua.LVAsNumber(table.RawGetInt(2))),
 		}
