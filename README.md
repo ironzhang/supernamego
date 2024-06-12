@@ -23,12 +23,11 @@ func main() {
 		return
 	}
 
-	endpoint, cluster, err := supernamego.LookupEndpoint(context.Background(), "www.superdns.com", nil)
+	addr, cluster, err := supernamego.Lookup(context.Background(), "sns/https.nginx")
 	if err != nil {
-		fmt.Printf("supernamego lookup endpoint: %v\n", err)
+		fmt.Printf("supernamego lookup: %v\n", err)
 		return
 	}
-	fmt.Printf("cluster=%s, endpoint=%v\n", cluster, endpoint)
+	fmt.Printf("cluster=%s, address=%v\n", cluster, addr)
 }
 ```
-
