@@ -197,7 +197,7 @@ func (r *resolver) keepAlive() {
 	domains := r.listProviders()
 
 	// 向 agent 发送订阅域名请求，以保持订阅的心跳
-	err := r.agent.SubscribeDomains(context.Background(), domains, time.Duration(r.param.Agent.SubscribeTTL)*time.Second, true)
+	err := r.agent.SubscribeDomains(context.Background(), domains, time.Duration(r.param.Agent.KeepAliveTTL)*time.Second, true)
 	if err != nil {
 		tlog.Warnw("keep alive fail", "error", err)
 		return
@@ -216,7 +216,7 @@ func (r *resolver) listProviders() []string {
 func (r *resolver) watchProviders(ctx context.Context, domains []string) error {
 	// 向 agent 发送订阅域名请求
 	err := r.agent.SubscribeDomains(ctx, domains,
-		time.Duration(r.param.Agent.SubscribeTTL)*time.Second, false)
+		time.Duration(r.param.Agent.KeepAliveTTL)*time.Second, false)
 	if err != nil {
 		tlog.WithContext(ctx).Warnw("subscribe domains", "domains", domains, "error", err)
 		if !r.param.Agent.SkipError {
@@ -246,7 +246,7 @@ func (r *resolver) watchProvider(ctx context.Context, domain string) (*provider,
 
 	// 向 agent 发送订阅域名请求
 	err := r.agent.SubscribeDomains(ctx, []string{domain},
-		time.Duration(r.param.Agent.SubscribeTTL)*time.Second, false)
+		time.Duration(r.param.Agent.KeepAliveTTL)*time.Second, false)
 	if err != nil {
 		tlog.WithContext(ctx).Warnw("subscribe domains", "domain", domain, "error", err)
 		if !r.param.Agent.SkipError {

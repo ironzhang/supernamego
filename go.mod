@@ -3,7 +3,7 @@ module github.com/ironzhang/supernamego
 go 1.22.3
 
 require (
-	github.com/ironzhang/superlib v0.0.0-20240207090537-c4bb3ffa29e6
+	github.com/ironzhang/superlib v0.0.0-20240612023153-8a8bf1a44864
 	github.com/ironzhang/tlog v0.0.0-20230221102626-339a8b110d69
 	github.com/yuin/gopher-lua v1.1.1
 )
