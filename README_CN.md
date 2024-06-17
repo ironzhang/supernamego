@@ -17,7 +17,7 @@ supernamego 是 sns 的 Go SDK 客户端，它提供类似 DNS 的服务发现�
 
 参见 [sns Installation](https://github.com/ironzhang/sns/tree/master?tab=readme-ov-file#installation)
 
-### Examples
+### 示例
 
 以下代码展示了如何使用 supernamego 来解析 sns 域名。
 
