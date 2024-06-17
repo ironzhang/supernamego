@@ -14,7 +14,7 @@ func main() {
 	//		return
 	//	}
 
-	addr, cluster, err := supernamego.Lookup(context.Background(), "sns/https.nginx")
+	addr, cluster, err := supernamego.Lookup(context.Background(), "sns/https.myapp")
 	if err != nil {
 		fmt.Printf("supernamego lookup: %v\n", err)
 		return

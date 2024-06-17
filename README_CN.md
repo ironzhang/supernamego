@@ -1,25 +1,25 @@
-English | [中文](./README_CN.md)
+[English](./README.md) | 中文
 
 # supernamego
 
-## Overview
+## 概述
 
-supernamego is a Go client for sns, it supports service discovery like dns.
+supernamego 是 sns 的 Go SDK 客户端，它提供类似 DNS 的服务发现功能。
 
-## Quick Start
+## 快速开始
 
-### Requirements
+### 要求
 
 * go version >= 1.22.3
 * A working docker environment
 
-### Installation
+### 安装
 
-see [sns Installation](https://github.com/ironzhang/sns/tree/master?tab=readme-ov-file#installation)
+参见 [sns Installation](https://github.com/ironzhang/sns/tree/master?tab=readme-ov-file#installation)
 
 ### Examples
 
-The following code shows how to use supernamego to resolve sns domain names.
+以下代码展示了如何使用 supernamego 来解析 sns 域名。
 
 ```
 package main
