@@ -1,0 +1,1 @@
+servers = ["sns/http.myapp", "127.0.0.1:8000"]

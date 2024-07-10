@@ -1,2 +1,4 @@
 /examples/sns-demo/sns-demo
 /examples/sns-lookup/sns-lookup
+/examples/sns-echo/client/client
+/examples/sns-echo/server/server

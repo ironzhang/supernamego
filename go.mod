@@ -3,13 +3,14 @@ module github.com/ironzhang/supernamego
 go 1.22.3
 
 require (
-	github.com/ironzhang/superlib v0.0.0-20240612023153-8a8bf1a44864
+	github.com/ironzhang/superlib v0.0.0-20240709065702-f45591137c63
 	github.com/ironzhang/tlog v0.0.0-20230221102626-339a8b110d69
 	github.com/yuin/gopher-lua v1.1.1
 )
 
 require (
 	github.com/BurntSushi/toml v1.3.2 // indirect
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/labstack/echo v3.3.10+incompatible // indirect
 	github.com/labstack/gommon v0.4.0 // indirect
 	github.com/mattn/go-colorable v0.1.11 // indirect
