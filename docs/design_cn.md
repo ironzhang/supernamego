@@ -84,7 +84,7 @@ func main() {
 	fmt.Printf("cluster=%s, address=%v\n", cluster, addr) // 返回的 addr = "192.168.1.1:80"
 ```
 
-这种情况下，用户如果将 SNS 域名配置化，在联调测试时，直接将配置中域名改成 IP:Port，即可方便地进行联调和测试，参见[sns-echo 示例](../examples/sns-echo/client/main.go)。
+这种情况下，用户如果将 SNS 域名配置化，在联调测试时，直接将配置中域名改成 IP:Port，即可方便地进行联调和测试，参见 [sns-echo 示例](../examples/sns-echo/client/main.go)。
 
 ### 1.2. SDK 的参数配置
 
