@@ -1,0 +1,13 @@
+@startuml
+
+"sns.snsResolver" --> "supername.Resolver": supernameResolver.Resolve("https.myapp", routeParams)
+"supername.Resolver" --> "supername.Resolver.watchProvider": watch provider if the provider is not watched
+"supername.Resolver.watchProvider" --> "agentclient.Client": r.agent.WatchDomains("https.myapp")
+"supername.Resolver.watchProvider" --> "filewatch.Watcher": r.watcher.WatchFile("ResourcePath/services/https.myapp.json")
+"supername.Resolver.watchProvider" --> "filewatch.Watcher": r.watcher.WatchFile("ResourcePath/routes/https.myapp.json")
+"supername.Resolver.watchProvider" --> "filewatch.Watcher": r.watcher.WatchFile("ResourcePath/routes/https.myapp.lua")
+"supername.Resolver" --> "supername.lookuper": lookuper.Lookup("https.myapp", routeParams)
+"supername.lookuper" --> "routepolicy.Policy": p.policy.MatchRoute("https.myapp", routeParams, clusters)
+"supername.Resolver" --> "sns.snsResolver": return cluster
+
+@enduml

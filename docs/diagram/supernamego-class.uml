@@ -1,0 +1,71 @@
+@startuml
+
+interface resolver.Resolver {
+	Resolve(ctx context.Context, domain string, params map[string]string) (supermodel.Cluster, error)
+}
+
+class sns.snsResolver {
+	Resolve(ctx context.Context, domain string, params map[string]string) (supermodel.Cluster, error)
+}
+
+class passthrough.passthroughResolver {
+	Resolve(ctx context.Context, domain string, params map[string]string) (supermodel.Cluster, error)
+}
+
+resolver.Resolver <|-- sns.snsResolver
+resolver.Resolver <|-- passthrough.passthroughResolver
+
+sns.snsResolver *-- supername.Resolver
+
+class supername.Resolver {
+	Preload(ctx context.Context, domains []string) error
+	Resolve(ctx context.Context, domain string, params map[string]string) (supermodel.Cluster, error)
+}
+
+class supername.resolver {
+	param parameter.Parameter
+	agent *agentclient.Client
+	watcher *filewatch.Watcher
+	policy *routepolicy.Policy
+	providers map[string]*provider
+	Preload(ctx context.Context, domains []string) error
+	LookupCluster(ctx context.Context, domain string, params map[string]string) (supermodel.Cluster, error)
+}
+
+class agentclient.Client {
+	WatchDomains(ctx context.Context, domains []string, ttl time.Duration, async bool) error
+}
+
+class filewatch.Watcher {
+	WatchFile(ctx context.Context, path string, f WatchFunc)
+}
+
+class routepolicy.Policy {
+	Load(path string) error
+	MatchRoute(domain string, params map[string]string, clusters map[string]supermodel.Cluster) ([]supermodel.Destination, error)
+}
+
+class supername.provider {
+	StoreServiceModel(s *supermodel.ServiceModel)
+	LoadServiceModel() (*supermodel.ServiceModel, bool)
+	StoreRouteModel(r *supermodel.RouteModel)
+	LoadRouteModel() (*supermodel.RouteModel, bool)
+	service *supermodel.ServiceModel
+	route *supermodel.RouteModel
+}
+
+supername.Resolver *-- supername.resolver
+supername.resolver *-- agentclient.Client
+supername.resolver *-- filewatch.Watcher
+supername.resolver *-- routepolicy.Policy
+supername.resolver o-- supername.provider
+
+interface loadbalance.LoadBalancer {
+	Pickup(ctx context.Context, domain, cluster string, endpoints []supermodel.Endpoint) (supermodel.Endpoint, error)
+}
+
+class loadbalance.WRLoadBalancer {}
+
+loadbalance.LoadBalancer <|-- loadbalance.WRLoadBalancer
+
+@enduml

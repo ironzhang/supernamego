@@ -1,0 +1,15 @@
+digraph g{
+	ranksep=0.6
+
+	node[shape=box3d, width=2.0 height=0.6 fontname="Arial"]
+
+	sns_agent[label="sns-agent"]
+	sns_files[shape=note label="sns domain files"]
+
+	app[shape=record label="{{SDK|{WatchFile|Lookup}}|app}"]
+
+
+	sns_agent->sns_files[label="write"]
+	sns_files->app[label="read"]
+	app:e->sns_agent:e[label="send watch domain request" constraint=false]
+}

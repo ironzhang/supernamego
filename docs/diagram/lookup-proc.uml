@@ -1,0 +1,11 @@
+@startuml
+
+"app" --> "supernamego": supernamego.Lookup("sns/https.myapp", callopts)
+"supernamego" --> "resolver": resolver.Resolve("sns/https.myapp", routeParams)
+"resolver" --> "resolver": r := resolvers[scheme]
+"resolver" --> "sns.snsResolver": r.Resolve("https.myapp", routeParams)
+"sns.snsResolver" --> "supername.Resolver": supernameResolver.Resolve("https.myapp", routeParams)
+"supernamego" --> "loadbalance.LoadBalancer": info.LoadBalancer.Pickup("https.myapp", c.Name, c.Endpoints)
+"supernamego" --> "app": return addr
+
+@enduml
