@@ -17,7 +17,7 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-func mergeRouteParams(src map[string]string, dst map[string]string) map[string]string {
+func mergeRouteContext(src map[string]string, dst map[string]string) map[string]string {
 	if len(src) <= 0 {
 		return dst
 	}
@@ -36,10 +36,10 @@ func mergeRouteParams(src map[string]string, dst map[string]string) map[string]s
 }
 
 type lookuper struct {
-	service *supermodel.ServiceModel
-	route   *supermodel.RouteModel
-	policy  *routepolicy.Policy
-	routes  map[string]string
+	service  *supermodel.ServiceModel
+	route    *supermodel.RouteModel
+	policy   *routepolicy.Policy
+	routectx map[string]string
 }
 
 func (p *lookuper) MakeClusterMap() map[string]supermodel.Cluster {
@@ -50,24 +50,24 @@ func (p *lookuper) MakeClusterMap() map[string]supermodel.Cluster {
 	return m
 }
 
-func (p *lookuper) MatchRouteScript(ctx context.Context, domain string, params map[string]string, clusters map[string]supermodel.Cluster) []supermodel.Destination {
-	params = mergeRouteParams(p.routes, params)
-	dests, err := p.policy.MatchRoute(domain, params, clusters)
+func (p *lookuper) MatchRouteScript(ctx context.Context, domain string, rctx map[string]string) []supermodel.Destination {
+	rctx = mergeRouteContext(p.routectx, rctx)
+	dests, err := p.policy.MatchRoute(domain, rctx, p.service.Clusters)
 	if err != nil {
-		tlog.Named("supername").WithContext(ctx).Warnw("policy match route", "domain", domain, "params", params, "error", err)
+		tlog.Named("supername").WithContext(ctx).Warnw("policy match route", "domain", domain, "rctx", rctx, "error", err)
 		return nil
 	}
 	return dests
 }
 
-func (p *lookuper) MatchRoute(ctx context.Context, domain string, params map[string]string, clusters map[string]supermodel.Cluster) []supermodel.Destination {
-	if p.route.Strategy.EnableScript {
-		dests := p.MatchRouteScript(ctx, domain, params, clusters)
+func (p *lookuper) MatchRoute(ctx context.Context, domain string, rctx map[string]string) []supermodel.Destination {
+	if p.route.Policy.EnableScript {
+		dests := p.MatchRouteScript(ctx, domain, rctx)
 		if len(dests) > 0 {
 			return dests
 		}
 	}
-	return p.route.Strategy.DefaultDestinations
+	return p.route.Policy.DefaultDestinations
 }
 
 func (p *lookuper) Pick(dests []supermodel.Destination) (cluster string, err error) {
@@ -88,13 +88,14 @@ func (p *lookuper) Pick(dests []supermodel.Destination) (cluster string, err err
 	return "", ErrNoAvalibaleCluster
 }
 
-func (p *lookuper) Lookup(ctx context.Context, domain string, params map[string]string) (supermodel.Cluster, error) {
-	clusters := p.MakeClusterMap()
-	dests := p.MatchRoute(ctx, domain, params, clusters)
+func (p *lookuper) Lookup(ctx context.Context, domain string, rctx map[string]string) (supermodel.Cluster, error) {
+	dests := p.MatchRoute(ctx, domain, rctx)
 	cname, err := p.Pick(dests)
 	if err != nil {
 		return supermodel.Cluster{}, fmt.Errorf("%s domain can not pick cluster: %w", domain, err)
 	}
+
+	clusters := p.MakeClusterMap()
 	c, ok := clusters[cname]
 	if !ok {
 		return supermodel.Cluster{}, fmt.Errorf("%s domain can not find %s cluster: %w", domain, cname, ErrClusterNotFound)

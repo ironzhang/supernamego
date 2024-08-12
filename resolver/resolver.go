@@ -9,7 +9,7 @@ import (
 )
 
 type Resolver interface {
-	Resolve(ctx context.Context, domain string, params map[string]string) (supermodel.Cluster, error)
+	Resolve(ctx context.Context, domain string, rctx map[string]string) (supermodel.Cluster, error)
 }
 
 var resolvers = make(map[string]Resolver)
@@ -22,11 +22,11 @@ func Register(scheme string, r Resolver) {
 	resolvers[scheme] = r
 }
 
-func Resolve(ctx context.Context, endpoint string, params map[string]string) (supermodel.Cluster, error) {
+func Resolve(ctx context.Context, endpoint string, rctx map[string]string) (supermodel.Cluster, error) {
 	scheme, domain := parseEndpoint(endpoint)
 	r, ok := resolvers[scheme]
 	if ok {
-		return r.Resolve(ctx, domain, params)
+		return r.Resolve(ctx, domain, rctx)
 	}
 	return supermodel.Cluster{}, fmt.Errorf("can not find %q scheme resolver", scheme)
 }

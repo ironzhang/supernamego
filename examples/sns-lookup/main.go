@@ -83,7 +83,7 @@ func printAddress(domain string, cluster string, addr string) {
 
 func doLookup(routes map[string]string) {
 	for _, domain := range flag.Args() {
-		addr, cluster, err := supernamego.Lookup(context.Background(), domain, supernamego.SetRouteParams(routes))
+		addr, cluster, err := supernamego.Lookup(context.Background(), domain, supernamego.SetRouteContext(routes))
 		if err != nil {
 			printError(domain, err)
 		} else {

@@ -23,7 +23,7 @@ func Setup(opts Options) error {
 
 	// 构造服务发现解析程序
 	supernameResolver = &supername.Resolver{
-		RouteParams:      opts.RouteParams,
+		RouteContext:     opts.RouteContext,
 		SkipPreloadError: opts.Misc.SkipPreloadError,
 	}
 

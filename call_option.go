@@ -4,7 +4,7 @@ import "github.com/ironzhang/supernamego/core/loadbalance"
 
 type callInfo struct {
 	LoadBalancer loadbalance.LoadBalancer
-	RouteParams  map[string]string
+	RouteContext map[string]string
 }
 
 type CallOption func(info *callInfo)
@@ -15,8 +15,8 @@ func SetLoadBalancer(lb loadbalance.LoadBalancer) CallOption {
 	}
 }
 
-func SetRouteParams(params map[string]string) CallOption {
+func SetRouteContext(rctx map[string]string) CallOption {
 	return func(info *callInfo) {
-		info.RouteParams = params
+		info.RouteContext = rctx
 	}
 }

@@ -20,7 +20,7 @@ import (
 
 // Resolver 服务发现解析程序
 type Resolver struct {
-	RouteParams      map[string]string // 路由参数
+	RouteContext     map[string]string // 路由上下文
 	SkipPreloadError bool              // 忽略预加载错误
 
 	once     sync.Once
@@ -33,7 +33,7 @@ func (r *Resolver) init() {
 	}
 
 	tlog.Named("supername").Debugw("init supername resolver", "resolver", r, "param", parameter.Param)
-	r.resolver = newResolver(r.RouteParams, parameter.Param)
+	r.resolver = newResolver(r.RouteContext, parameter.Param)
 }
 
 // Preload 预加载
@@ -59,13 +59,13 @@ func (r *Resolver) Preload(ctx context.Context, domains []string) error {
 }
 
 // Resolve 解析域名
-func (r *Resolver) Resolve(ctx context.Context, domain string, params map[string]string) (supermodel.Cluster, error) {
+func (r *Resolver) Resolve(ctx context.Context, domain string, rctx map[string]string) (supermodel.Cluster, error) {
 	r.once.Do(r.init)
 
 	// 通过域名查找集群节点
-	c, err := r.resolver.LookupCluster(ctx, domain, params)
+	c, err := r.resolver.LookupCluster(ctx, domain, rctx)
 	if err != nil {
-		tlog.Named("supername").WithContext(ctx).Errorw("lookup cluster", "domain", domain, "params", params, "error", err)
+		tlog.Named("supername").WithContext(ctx).Errorw("lookup cluster", "domain", domain, "rctx", rctx, "error", err)
 		return supermodel.Cluster{}, err
 	}
 	return c, nil
@@ -77,7 +77,7 @@ func (r *Resolver) Resolve(ctx context.Context, domain string, params map[string
 
 // resolver 服务发现解析程序核心实现
 type resolver struct {
-	routes    map[string]string    // 路由参数
+	routectx  map[string]string    // 路由上下文
 	param     parameter.Parameter  // 解析程序配置参数
 	agent     *agentclient.Client  // agent 客户端
 	watcher   *filewatch.Watcher   // 文件订阅程序
@@ -87,10 +87,10 @@ type resolver struct {
 }
 
 // newResolver 构造服务发现解析程序核心实现
-func newResolver(routes map[string]string, param parameter.Parameter) *resolver {
+func newResolver(rctx map[string]string, param parameter.Parameter) *resolver {
 	r := &resolver{
-		routes: routes,
-		param:  param,
+		routectx: rctx,
+		param:    param,
 		agent: agentclient.New(agentclient.Options{
 			Addr:    param.Agent.Server,
 			Timeout: time.Duration(param.Agent.Timeout) * time.Second,
@@ -114,7 +114,7 @@ func (r *resolver) Preload(ctx context.Context, domains []string) error {
 }
 
 // LookupCluster 查找集群节点
-func (r *resolver) LookupCluster(ctx context.Context, domain string, params map[string]string) (supermodel.Cluster, error) {
+func (r *resolver) LookupCluster(ctx context.Context, domain string, rctx map[string]string) (supermodel.Cluster, error) {
 	// 订阅服务提供方
 	p, err := r.watchProvider(ctx, domain)
 	if err != nil {
@@ -138,13 +138,13 @@ func (r *resolver) LookupCluster(ctx context.Context, domain string, params map[
 
 	// 查找集群
 	c, err := (&lookuper{
-		service: service,
-		route:   route,
-		policy:  r.policy,
-		routes:  r.routes,
-	}).Lookup(ctx, domain, params)
+		service:  service,
+		route:    route,
+		policy:   r.policy,
+		routectx: r.routectx,
+	}).Lookup(ctx, domain, rctx)
 	if err != nil {
-		tlog.Named("supername").WithContext(ctx).Errorw("lookup", "domain", domain, "tags", params, "error", err)
+		tlog.Named("supername").WithContext(ctx).Errorw("lookup", "domain", domain, "tags", rctx, "error", err)
 		return supermodel.Cluster{}, err
 	}
 	return c, nil

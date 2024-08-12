@@ -11,8 +11,8 @@ import (
 type snsResolver struct {
 }
 
-func (p snsResolver) Resolve(ctx context.Context, domain string, params map[string]string) (supermodel.Cluster, error) {
-	return supernameResolver.Resolve(ctx, domain, params)
+func (p snsResolver) Resolve(ctx context.Context, domain string, rctx map[string]string) (supermodel.Cluster, error) {
+	return supernameResolver.Resolve(ctx, domain, rctx)
 }
 
 func init() {

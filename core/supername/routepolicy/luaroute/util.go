@@ -19,15 +19,15 @@ func makeMapTable(ls *lua.LState, m map[string]string) *lua.LTable {
 func makeClusterTable(ls *lua.LState, c supermodel.Cluster) *lua.LTable {
 	lt := ls.NewTable()
 	lt.RawSetString("Name", lua.LString(c.Name))
-	lt.RawSetString("Features", makeMapTable(ls, c.Features))
+	lt.RawSetString("Labels", makeMapTable(ls, c.Labels))
 	lt.RawSetString("EndpointNum", lua.LNumber(len(c.Endpoints)))
 	return lt
 }
 
-func makeClusterMapTable(ls *lua.LState, clusters map[string]supermodel.Cluster) *lua.LTable {
+func makeClusterSliceTable(ls *lua.LState, clusters []supermodel.Cluster) *lua.LTable {
 	lt := ls.NewTable()
-	for name, cluster := range clusters {
-		lt.RawSetString(name, makeClusterTable(ls, cluster))
+	for _, cluster := range clusters {
+		lt.Append(makeClusterTable(ls, cluster))
 	}
 	return lt
 }

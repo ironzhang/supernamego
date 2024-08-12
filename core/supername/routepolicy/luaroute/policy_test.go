@@ -38,67 +38,28 @@ func TestPolicy(t *testing.T) {
 	}
 
 	// 测试集群列表
-	clusters := map[string]supermodel.Cluster{
-		"default@mock": supermodel.Cluster{
-			Name: "default@mock",
-			Features: map[string]string{
-				"Lidc":        "default_lidc",
-				"Region":      "default_region",
-				"Environment": "product",
+	clusters := []supermodel.Cluster{
+		supermodel.Cluster{
+			Name: "az00.default.k8s",
+			Labels: map[string]string{
+				supermodel.ZoneKey: "az00",
+				supermodel.LaneKey: "default",
 			},
 			Endpoints: make([]supermodel.Endpoint, 10),
 		},
-		"hna-v": supermodel.Cluster{
-			Name: "hna-v",
-			Features: map[string]string{
-				"Lidc":        "hna",
-				"Region":      "hn",
-				"Environment": "product",
+		supermodel.Cluster{
+			Name: "az00.small.k8s",
+			Labels: map[string]string{
+				supermodel.ZoneKey: "az00",
+				supermodel.LaneKey: "small",
 			},
 			Endpoints: make([]supermodel.Endpoint, 10),
 		},
-		"hnb-v": supermodel.Cluster{
-			Name: "hnb-v",
-			Features: map[string]string{
-				"Lidc":        "hnb",
-				"Region":      "hn",
-				"Environment": "product",
-			},
-			Endpoints: make([]supermodel.Endpoint, 10),
-		},
-		"hbf-v": supermodel.Cluster{
-			Name: "hbf-v",
-			Features: map[string]string{
-				"Lidc":        "hbf",
-				"Region":      "hb",
-				"Environment": "product",
-			},
-			Endpoints: make([]supermodel.Endpoint, 10),
-		},
-		"hna-sim000-v": supermodel.Cluster{
-			Name: "hna-sim000-v",
-			Features: map[string]string{
-				"Lidc":        "hna",
-				"Region":      "hn",
-				"Environment": "sim",
-			},
-			Endpoints: make([]supermodel.Endpoint, 10),
-		},
-		"hna-sim001-v": supermodel.Cluster{
-			Name: "hna-sim001-v",
-			Features: map[string]string{
-				"Lidc":        "hna",
-				"Region":      "hn",
-				"Environment": "sim",
-			},
-			Endpoints: make([]supermodel.Endpoint, 10),
-		},
-		"hna-sim002-v": supermodel.Cluster{
-			Name: "hna-sim002-v",
-			Features: map[string]string{
-				"Lidc":        "hna",
-				"Region":      "hn",
-				"Environment": "sim",
+		supermodel.Cluster{
+			Name: "az01.default.k8s",
+			Labels: map[string]string{
+				supermodel.ZoneKey: "az01",
+				supermodel.LaneKey: "default",
 			},
 			Endpoints: make([]supermodel.Endpoint, 10),
 		},
@@ -107,122 +68,111 @@ func TestPolicy(t *testing.T) {
 	// 测试用例
 	tests := []struct {
 		domain       string
-		tags         map[string]string
-		clusters     map[string]supermodel.Cluster
+		routectx     map[string]string
+		clusters     []supermodel.Cluster
 		destinations []supermodel.Destination
 		err          string
 	}{
 		{
-			domain: "www.test1.com",
-			tags: map[string]string{
-				"Service":     "test-a",
-				"Cluster":     "hna-v",
-				"Lidc":        "hna",
-				"Region":      "hn",
-				"Environment": "product",
-			},
-			clusters: clusters,
-			destinations: []supermodel.Destination{
-				{Cluster: "hna-v", Percent: 1},
-			},
-			err: "",
+			domain:       "www.test1.com",
+			routectx:     map[string]string{},
+			clusters:     clusters,
+			destinations: nil,
+			err:          "",
 		},
 		{
 			domain: "www.test1.com",
-			tags: map[string]string{
-				"Service":     "test-a",
-				"Cluster":     "hba-v",
-				"Lidc":        "hba",
-				"Region":      "hb",
-				"Environment": "product",
-			},
-			clusters: clusters,
-			destinations: []supermodel.Destination{
-				{Cluster: "hbf-v", Percent: 1},
-			},
-			err: "",
-		},
-		{
-			domain: "www.test1.com",
-			tags: map[string]string{
-				"Service":        "test-a",
-				"Cluster":        "hna-sim000-v",
-				"Lidc":           "hna",
-				"Region":         "hn",
-				"Environment":    "sim",
-				"X-Lane-Cluster": "hna-sim100-v",
-			},
-			clusters: clusters,
-			destinations: []supermodel.Destination{
-				{Cluster: "hna-sim000-v", Percent: 1},
-			},
-			err: "",
-		},
-		{
-			domain: "www.test1.com",
-			tags: map[string]string{
-				"Service":        "test-a",
-				"Cluster":        "hna-sim000-v",
-				"Lidc":           "hna",
-				"Region":         "hn",
-				"Environment":    "sim",
-				"X-Lane-Cluster": "hna-sim001-v",
-			},
-			clusters: clusters,
-			destinations: []supermodel.Destination{
-				{Cluster: "hna-sim001-v", Percent: 1},
-			},
-			err: "",
-		},
-		{
-			domain: "www.test2.com",
-			tags: map[string]string{
-				"Service":     "test-a",
-				"Cluster":     "hna-v",
-				"Lidc":        "hna",
-				"Region":      "hn",
-				"Environment": "product",
-			},
-			clusters: clusters,
-			destinations: []supermodel.Destination{
-				{Cluster: "hna-v", Percent: 0.5},
-				{Cluster: "hnb-v", Percent: 0.5},
-			},
-			err: "",
-		},
-		{
-			domain: "www.test2.com",
-			tags: map[string]string{
-				"Service":        "test-a",
-				"Cluster":        "hna-sim000-v",
-				"Lidc":           "hna",
-				"Region":         "hn",
-				"Environment":    "sim",
-				"X-Lane-Cluster": "hna-sim001-v",
-			},
-			clusters: clusters,
-			destinations: []supermodel.Destination{
-				{Cluster: "default@mock", Percent: 1},
-			},
-			err: "",
-		},
-		{
-			domain: "www.not.find.com",
-			tags: map[string]string{
-				"Service":        "test-a",
-				"Cluster":        "hna-sim000-v",
-				"Lidc":           "hna",
-				"Region":         "hn",
-				"Environment":    "sim",
-				"X-Lane-Cluster": "hna-sim001-v",
+			routectx: map[string]string{
+				supermodel.ZoneKey: "az03",
+				supermodel.LaneKey: "default",
 			},
 			clusters:     clusters,
 			destinations: nil,
-			err:          "can not find",
+			err:          "",
+		},
+		{
+			domain: "www.test1.com",
+			routectx: map[string]string{
+				supermodel.ZoneKey: "az00",
+				supermodel.LaneKey: "default",
+			},
+			clusters: clusters,
+			destinations: []supermodel.Destination{
+				{Cluster: "az00.default.k8s", Percent: 1},
+			},
+			err: "",
+		},
+		{
+			domain: "www.test1.com",
+			routectx: map[string]string{
+				supermodel.ZoneKey: "az00",
+				supermodel.LaneKey: "small",
+			},
+			clusters: clusters,
+			destinations: []supermodel.Destination{
+				{Cluster: "az00.default.k8s", Percent: 1},
+			},
+			err: "",
+		},
+		{
+			domain: "www.test1.com",
+			routectx: map[string]string{
+				supermodel.ZoneKey: "az00",
+				supermodel.LaneKey: "read",
+			},
+			clusters: clusters,
+			destinations: []supermodel.Destination{
+				{Cluster: "az00.default.k8s", Percent: 1},
+			},
+			err: "",
+		},
+
+		{
+			domain:       "www.test2.com",
+			routectx:     map[string]string{},
+			clusters:     clusters,
+			destinations: nil,
+			err:          "",
+		},
+		{
+			domain: "www.test2.com",
+			routectx: map[string]string{
+				supermodel.ZoneKey: "az00",
+				supermodel.LaneKey: "default",
+			},
+			clusters: clusters,
+			destinations: []supermodel.Destination{
+				{Cluster: "az00.default.k8s", Percent: 1},
+			},
+			err: "",
+		},
+		{
+			domain: "www.test2.com",
+			routectx: map[string]string{
+				supermodel.ZoneKey: "az00",
+				supermodel.LaneKey: "small",
+			},
+			clusters: clusters,
+			destinations: []supermodel.Destination{
+				{Cluster: "az00.small.k8s", Percent: 1},
+			},
+			err: "",
+		},
+		{
+			domain: "www.test2.com",
+			routectx: map[string]string{
+				supermodel.ZoneKey: "az01",
+				supermodel.LaneKey: "small",
+			},
+			clusters: clusters,
+			destinations: []supermodel.Destination{
+				{Cluster: "az01.default.k8s", Percent: 1},
+			},
+			err: "",
 		},
 	}
 	for i, tt := range tests {
-		dests, err := p.MatchRoute(tt.domain, tt.tags, tt.clusters)
+		dests, err := p.MatchRoute(tt.domain, tt.routectx, tt.clusters)
 		if got, want := err, tt.err; !matchError(t, got, want) {
 			t.Fatalf("%d: match route, domain=%q: error is not match, got %v, want %v", i, tt.domain, got, want)
 		}

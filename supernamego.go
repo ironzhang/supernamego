@@ -20,7 +20,7 @@ func Lookup(ctx context.Context, domain string, opts ...CallOption) (addr, clust
 	info := makeCallInfo(opts)
 
 	// 解析域名
-	c, err := resolver.Resolve(ctx, domain, info.RouteParams)
+	c, err := resolver.Resolve(ctx, domain, info.RouteContext)
 	if err != nil {
 		return "", "", err
 	}

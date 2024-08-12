@@ -14,8 +14,8 @@ type Misc struct {
 
 // Options 初始化选项
 type Options struct {
-	// 路由标签，为 nil 则读取文件 superoptions/route-params.json
-	RouteParams map[string]string
+	// 路由上下文，为 nil 则读取文件 superoptions/route-context.json
+	RouteContext map[string]string
 
 	// 预加载域名列表，为 nil 则读取文件 superoptions/preload.json
 	PreloadDomains []string
@@ -25,10 +25,10 @@ type Options struct {
 }
 
 func (p *Options) setupDefaults() (err error) {
-	if p.RouteParams == nil {
-		p.RouteParams, err = readRouteParams()
+	if p.RouteContext == nil {
+		p.RouteContext, err = readRouteContext()
 		if err != nil {
-			return fmt.Errorf("read route params: %w", err)
+			return fmt.Errorf("read route context: %w", err)
 		}
 	}
 
@@ -49,9 +49,9 @@ func (p *Options) setupDefaults() (err error) {
 	return nil
 }
 
-func readRouteParams() (map[string]string, error) {
+func readRouteContext() (map[string]string, error) {
 	var params map[string]string
-	const path = "superoptions/route-params.json"
+	const path = "superoptions/route-context.json"
 	if fileutil.FileExist(path) {
 		err := fileutil.ReadJSON(path, &params)
 		if err != nil {

@@ -11,7 +11,7 @@ import (
 type passthroughResolver struct {
 }
 
-func (p passthroughResolver) Resolve(ctx context.Context, domain string, params map[string]string) (supermodel.Cluster, error) {
+func (p passthroughResolver) Resolve(ctx context.Context, domain string, rctx map[string]string) (supermodel.Cluster, error) {
 	return supermodel.Cluster{
 		Name: domain,
 		Endpoints: []supermodel.Endpoint{
