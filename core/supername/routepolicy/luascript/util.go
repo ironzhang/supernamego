@@ -1,4 +1,4 @@
-package luaroute
+package luascript
 
 import (
 	"fmt"

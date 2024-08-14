@@ -1,36 +1,80 @@
 package routepolicy
 
 import (
-	"sync"
+	"context"
+	"fmt"
 
 	"github.com/ironzhang/superlib/superutil/supermodel"
+	"github.com/ironzhang/tlog"
 
-	"github.com/ironzhang/supernamego/core/supername/routepolicy/luaroute"
+	"github.com/ironzhang/supernamego/core/supername/routepolicy/luascript"
+	"github.com/ironzhang/supernamego/core/supername/routepolicy/selection"
+	"github.com/ironzhang/supernamego/pkg/public"
 )
 
 // Policy 路由策略
 type Policy struct {
-	mu     sync.Mutex
-	policy *luaroute.Policy
+	routectx map[string]string        // 路由上下文
+	service  *supermodel.ServiceModel // 服务模型
+	route    *supermodel.RouteModel   // 路由模型
+	script   *luascript.Script        // 路由脚本
 }
 
 // NewPolicy 构建路由策略
-func NewPolicy() *Policy {
+func NewPolicy(rctx map[string]string, service *supermodel.ServiceModel, route *supermodel.RouteModel, script *luascript.Script) *Policy {
 	return &Policy{
-		policy: luaroute.NewPolicy(),
+		routectx: rctx,
+		service:  service,
+		route:    route,
+		script:   script,
 	}
 }
 
-// Load 加载路由脚本
-func (p *Policy) Load(path string) error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	return p.policy.Load(path)
+// Matches 执行路由匹配
+func (p *Policy) Matches(ctx context.Context, domain string) (supermodel.Cluster, error) {
+	cluster := p.matches(ctx, domain)
+	for _, c := range p.service.Clusters {
+		if c.Name == cluster {
+			return c, nil
+		}
+	}
+	return supermodel.Cluster{}, fmt.Errorf("%s domain can not find %s cluster: %w", domain, cluster, public.ErrClusterNotFound)
 }
 
-// MatchRoute 执行路由匹配
-func (p *Policy) MatchRoute(domain string, rctx map[string]string, clusters []supermodel.Cluster) ([]supermodel.Destination, error) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	return p.policy.MatchRoute(domain, rctx, clusters)
+func (p *Policy) matches(ctx context.Context, domain string) string {
+	if p.route.Policy.EnableScript {
+		dests := p.matchScript(ctx, domain)
+		if len(dests) > 0 {
+			return pick(dests)
+		}
+	}
+
+	cluster, ok := p.matchLabels(ctx)
+	if ok {
+		return cluster
+	}
+
+	return p.service.DefaultDestination
+}
+
+func (p *Policy) matchScript(ctx context.Context, domain string) []supermodel.Destination {
+	dests, err := p.script.Matches(domain, p.routectx, p.service.Clusters)
+	if err != nil {
+		tlog.Named(public.LoggerName).WithContext(ctx).Warnw("script matches", "domain", domain, "rctx", p.routectx, "error", err)
+		return nil
+	}
+	return dests
+}
+
+func (p *Policy) matchLabels(ctx context.Context) (string, bool) {
+	for _, ls := range p.route.Policy.LabelSelectors {
+		s := selection.NewSelector(ls...)
+		for _, c := range p.service.Clusters {
+			store := selection.NewStore(p.routectx, c.Labels)
+			if s.Matches(store) {
+				return c.Name, true
+			}
+		}
+	}
+	return "", false
 }

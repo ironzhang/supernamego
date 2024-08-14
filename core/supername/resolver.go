@@ -7,15 +7,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ironzhang/tlog"
-
 	"github.com/ironzhang/superlib/fileutil"
 	"github.com/ironzhang/superlib/filewatch"
 	"github.com/ironzhang/superlib/superutil/parameter"
 	"github.com/ironzhang/superlib/superutil/supermodel"
+	"github.com/ironzhang/tlog"
 
 	"github.com/ironzhang/supernamego/core/supername/routepolicy"
+	"github.com/ironzhang/supernamego/core/supername/routepolicy/luascript"
 	"github.com/ironzhang/supernamego/pkg/agentclient"
+	"github.com/ironzhang/supernamego/pkg/public"
 )
 
 // Resolver 服务发现解析程序
@@ -32,7 +33,7 @@ func (r *Resolver) init() {
 		return
 	}
 
-	tlog.Named("supername").Debugw("init supername resolver", "resolver", r, "param", parameter.Param)
+	tlog.Named(public.LoggerName).Debugw("init supername resolver", "resolver", r, "param", parameter.Param)
 	r.resolver = newResolver(r.RouteContext, parameter.Param)
 }
 
@@ -65,7 +66,7 @@ func (r *Resolver) Resolve(ctx context.Context, domain string, rctx map[string]s
 	// 通过域名查找集群节点
 	c, err := r.resolver.LookupCluster(ctx, domain, rctx)
 	if err != nil {
-		tlog.Named("supername").WithContext(ctx).Errorw("lookup cluster", "domain", domain, "rctx", rctx, "error", err)
+		tlog.Named(public.LoggerName).WithContext(ctx).Errorw("lookup cluster", "domain", domain, "rctx", rctx, "error", err)
 		return supermodel.Cluster{}, err
 	}
 	return c, nil
@@ -81,7 +82,7 @@ type resolver struct {
 	param     parameter.Parameter  // 解析程序配置参数
 	agent     *agentclient.Client  // agent 客户端
 	watcher   *filewatch.Watcher   // 文件订阅程序
-	policy    *routepolicy.Policy  // 路由策略
+	script    *luascript.Script    // 路由脚本
 	mu        sync.Mutex           // 服务提供方映射表互斥锁
 	providers map[string]*provider // 服务提供方映射表，key 为 domain
 }
@@ -96,7 +97,7 @@ func newResolver(rctx map[string]string, param parameter.Parameter) *resolver {
 			Timeout: time.Duration(param.Agent.Timeout) * time.Second,
 		}),
 		watcher:   filewatch.NewWatcher(time.Duration(param.Watch.WatchInterval) * time.Second),
-		policy:    routepolicy.NewPolicy(),
+		script:    luascript.NewScript(),
 		providers: make(map[string]*provider),
 	}
 	go r.running()
@@ -107,7 +108,7 @@ func newResolver(rctx map[string]string, param parameter.Parameter) *resolver {
 func (r *resolver) Preload(ctx context.Context, domains []string) error {
 	err := r.watchProviders(ctx, domains)
 	if err != nil {
-		tlog.Named("supername").WithContext(ctx).Errorw("watch providers", "domains", domains, "error", err)
+		tlog.Named(public.LoggerName).WithContext(ctx).Errorw("watch providers", "domains", domains, "error", err)
 		return err
 	}
 	return nil
@@ -118,33 +119,30 @@ func (r *resolver) LookupCluster(ctx context.Context, domain string, rctx map[st
 	// 订阅服务提供方
 	p, err := r.watchProvider(ctx, domain)
 	if err != nil {
-		tlog.Named("supername").WithContext(ctx).Errorw("watch provider", "domain", domain, "error", err)
+		tlog.Named(public.LoggerName).WithContext(ctx).Errorw("watch provider", "domain", domain, "error", err)
 		return supermodel.Cluster{}, err
 	}
 
 	// 获取服务模型
 	service, ok := p.LoadServiceModel()
 	if !ok {
-		tlog.Named("supername").WithContext(ctx).Errorw("can not load service model", "domain", domain)
+		tlog.Named(public.LoggerName).WithContext(ctx).Errorw("can not load service model", "domain", domain)
 		return supermodel.Cluster{}, r.serviceNotLoad(domain)
 	}
 
 	// 获取路由模型
 	route, ok := p.LoadRouteModel()
 	if !ok {
-		tlog.Named("supername").WithContext(ctx).Errorw("can not load route model", "domain", domain)
+		tlog.Named(public.LoggerName).WithContext(ctx).Errorw("can not load route model", "domain", domain)
 		return supermodel.Cluster{}, r.routeNotLoad(domain)
 	}
 
-	// 查找集群
-	c, err := (&lookuper{
-		service:  service,
-		route:    route,
-		policy:   r.policy,
-		routectx: r.routectx,
-	}).Lookup(ctx, domain, rctx)
+	// 根据路由策略查找集群
+	rctx = mergeRouteContext(rctx, r.routectx)
+	policy := routepolicy.NewPolicy(rctx, service, route, r.script)
+	c, err := policy.Matches(ctx, domain)
 	if err != nil {
-		tlog.Named("supername").WithContext(ctx).Errorw("lookup", "domain", domain, "tags", rctx, "error", err)
+		tlog.Named(public.LoggerName).WithContext(ctx).Errorw("matches", "domain", domain, "rctx", rctx, "error", err)
 		return supermodel.Cluster{}, err
 	}
 	return c, nil
@@ -166,10 +164,10 @@ func (r *resolver) keepAlive() {
 	// 向 agent 发送订阅域名请求，以保持订阅的心跳
 	err := r.agent.WatchDomains(context.Background(), domains, time.Duration(r.param.Agent.KeepAliveTTL)*time.Second, true)
 	if err != nil {
-		tlog.Warnw("keep alive fail", "error", err)
+		tlog.Named(public.LoggerName).Warnw("keep alive fail", "error", err)
 		return
 	}
-	tlog.Debug("keep alive success")
+	tlog.Named(public.LoggerName).Debug("keep alive success")
 }
 
 func (r *resolver) listProviders() []string {
@@ -185,7 +183,7 @@ func (r *resolver) watchProviders(ctx context.Context, domains []string) error {
 	err := r.agent.WatchDomains(ctx, domains,
 		time.Duration(r.param.Agent.KeepAliveTTL)*time.Second, false)
 	if err != nil {
-		tlog.WithContext(ctx).Warnw("watch domains", "domains", domains, "error", err)
+		tlog.Named(public.LoggerName).WithContext(ctx).Warnw("watch domains", "domains", domains, "error", err)
 		if !r.param.Agent.SkipError {
 			return err
 		}
@@ -215,7 +213,7 @@ func (r *resolver) watchProvider(ctx context.Context, domain string) (*provider,
 	err := r.agent.WatchDomains(ctx, []string{domain},
 		time.Duration(r.param.Agent.KeepAliveTTL)*time.Second, false)
 	if err != nil {
-		tlog.WithContext(ctx).Warnw("watch domains", "domain", domain, "error", err)
+		tlog.Named(public.LoggerName).WithContext(ctx).Warnw("watch domains", "domain", domain, "error", err)
 		if !r.param.Agent.SkipError {
 			return nil, err
 		}
@@ -259,9 +257,9 @@ func (r *resolver) loadProvider(ctx context.Context, domain string) *provider {
 
 	// 订阅路由脚本
 	r.watcher.WatchFile(ctx, r.routeScriptPath(domain), func(path string) bool {
-		err := r.policy.Load(path)
+		err := r.script.Load(path)
 		if err != nil {
-			tlog.Named("supername").Errorw("policy load", "path", path, "error", err)
+			tlog.Named(public.LoggerName).Errorw("policy load", "path", path, "error", err)
 		}
 		return false
 	})

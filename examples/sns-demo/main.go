@@ -8,13 +8,13 @@ import (
 )
 
 func main() {
-	//	err := supernamego.AutoSetup()
-	//	if err != nil {
-	//		fmt.Printf("supernamego auto setup: %v\n", err)
-	//		return
-	//	}
+	err := supernamego.AutoSetup()
+	if err != nil {
+		fmt.Printf("supernamego auto setup: %v\n", err)
+		return
+	}
 
-	addr, cluster, err := supernamego.Lookup(context.Background(), "sns/https.myapp")
+	addr, cluster, err := supernamego.Lookup(context.Background(), "sns/http.myapp")
 	if err != nil {
 		fmt.Printf("supernamego lookup: %v\n", err)
 		return

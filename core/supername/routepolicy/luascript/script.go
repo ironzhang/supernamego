@@ -1,26 +1,41 @@
-package luaroute
+package luascript
 
 import (
 	"errors"
 	"fmt"
+	"sync"
 
 	lua "github.com/yuin/gopher-lua"
 
 	"github.com/ironzhang/superlib/superutil/supermodel"
 )
 
-// Policy 路由策略
-type Policy struct {
+// Script 路由脚本
+type Script struct {
+	mu     sync.Mutex
 	lstate *lua.LState
 }
 
-// NewPolicy 构建路由策略
-func NewPolicy() *Policy {
-	return &Policy{lstate: lua.NewState()}
+// NewScript 构建路由脚本
+func NewScript() *Script {
+	return &Script{lstate: lua.NewState()}
 }
 
 // Load 加载路由脚本
-func (p *Policy) Load(path string) error {
+func (p *Script) Load(path string) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.load(path)
+}
+
+// Matches 执行路由匹配
+func (p *Script) Matches(domain string, rctx map[string]string, clusters []supermodel.Cluster) ([]supermodel.Destination, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.matches(domain, rctx, clusters)
+}
+
+func (p *Script) load(path string) error {
 	err := p.lstate.DoFile(path)
 	if err != nil {
 		return fmt.Errorf("luaroute: do file %q: %w", path, err)
@@ -28,8 +43,7 @@ func (p *Policy) Load(path string) error {
 	return nil
 }
 
-// MatchRoute 执行路由匹配
-func (p *Policy) MatchRoute(domain string, rctx map[string]string, clusters []supermodel.Cluster) ([]supermodel.Destination, error) {
+func (p *Script) matches(domain string, rctx map[string]string, clusters []supermodel.Cluster) ([]supermodel.Destination, error) {
 	// 查找脚本函数
 	fn, err := p.lookupFunction("MatchFuncs", domain)
 	if err != nil {
@@ -62,7 +76,7 @@ func (p *Policy) MatchRoute(domain string, rctx map[string]string, clusters []su
 	return dests, nil
 }
 
-func (p *Policy) lookupFunction(table, key string) (*lua.LFunction, error) {
+func (p *Script) lookupFunction(table, key string) (*lua.LFunction, error) {
 	lt, ok := p.lstate.GetGlobal(table).(*lua.LTable)
 	if !ok {
 		return nil, fmt.Errorf("%q is not a table", table)

@@ -7,6 +7,7 @@ import (
 
 	"github.com/ironzhang/superlib/fileutil"
 	"github.com/ironzhang/superlib/httputils/httpclient"
+	"github.com/ironzhang/superlib/httputils/httpclient/interceptors"
 	"github.com/ironzhang/supernamego"
 	"github.com/ironzhang/tlog"
 )
@@ -44,9 +45,9 @@ func RunEcho(addr string) {
 		Client: http.Client{
 			Timeout: time.Second,
 		},
-		Resolve:      SupernameResolve,
+		Resolve: SupernameResolve,
 		Interceptors: []httpclient.Interceptor{
-			//interceptors.AccessLogInterceptor(),
+			interceptors.AccessLogInterceptor(),
 		},
 	}
 

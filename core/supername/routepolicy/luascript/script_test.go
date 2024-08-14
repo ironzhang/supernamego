@@ -1,4 +1,4 @@
-package luaroute
+package luascript
 
 import (
 	"reflect"
@@ -27,7 +27,7 @@ func matchError(t testing.TB, err error, errstr string) bool {
 }
 
 func TestPolicy(t *testing.T) {
-	p := NewPolicy()
+	p := NewScript()
 
 	// 加载脚本
 	scripts := []string{"./testdata/test1.lua", "./testdata/test2.lua"}
@@ -172,7 +172,7 @@ func TestPolicy(t *testing.T) {
 		},
 	}
 	for i, tt := range tests {
-		dests, err := p.MatchRoute(tt.domain, tt.routectx, tt.clusters)
+		dests, err := p.Matches(tt.domain, tt.routectx, tt.clusters)
 		if got, want := err, tt.err; !matchError(t, got, want) {
 			t.Fatalf("%d: match route, domain=%q: error is not match, got %v, want %v", i, tt.domain, got, want)
 		}
