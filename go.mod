@@ -3,7 +3,7 @@ module github.com/ironzhang/supernamego
 go 1.22.3
 
 require (
-	github.com/ironzhang/superlib v0.0.0-20240814123807-f2d7b515e8ba
+	github.com/ironzhang/superlib v0.0.0-20240820120217-2995201216ae
 	github.com/ironzhang/tlog v0.0.0-20230221102626-339a8b110d69
 	github.com/yuin/gopher-lua v1.1.1
 )
@@ -27,6 +27,7 @@ require (
 	golang.org/x/sys v0.0.0-20211103235746-7861aae1554b // indirect
 	golang.org/x/text v0.3.0 // indirect
 	golang.org/x/tools v0.0.0-20191029190741-b9c20aec41a5 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 	honnef.co/go/tools v0.0.1-2019.2.3 // indirect
 )
 

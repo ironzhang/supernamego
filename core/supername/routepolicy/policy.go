@@ -8,7 +8,6 @@ import (
 	"github.com/ironzhang/tlog"
 
 	"github.com/ironzhang/supernamego/core/supername/routepolicy/luascript"
-	"github.com/ironzhang/supernamego/core/supername/routepolicy/selection"
 	"github.com/ironzhang/supernamego/pkg/public"
 )
 
@@ -49,11 +48,6 @@ func (p *Policy) matches(ctx context.Context, domain string) string {
 		}
 	}
 
-	cluster, ok := p.matchLabels(ctx)
-	if ok {
-		return cluster
-	}
-
 	return p.service.DefaultDestination
 }
 
@@ -64,17 +58,4 @@ func (p *Policy) matchScript(ctx context.Context, domain string) []supermodel.De
 		return nil
 	}
 	return dests
-}
-
-func (p *Policy) matchLabels(ctx context.Context) (string, bool) {
-	for _, ls := range p.route.Policy.LabelSelectors {
-		s := selection.NewSelector(ls...)
-		for _, c := range p.service.Clusters {
-			store := selection.NewStore(p.routectx, c.Labels)
-			if s.Matches(store) {
-				return c.Name, true
-			}
-		}
-	}
-	return "", false
 }
